@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">AndroidAssignment</string>
+    <string name="button_text">Search</string>
+    <string name="hint_text">Address</string>
 </resources>
