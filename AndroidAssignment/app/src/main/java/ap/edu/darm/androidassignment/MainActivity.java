@@ -81,7 +81,6 @@ public class MainActivity extends Activity {
         // http://code.tutsplus.com/tutorials/an-introduction-to-volley--cms-23800
         mRequestQueue = Volley.newRequestQueue(this);
         searchField = (TextView) findViewById(R.id.lib_name);
-        searchField.
 
 //-----------------------------------------------------------------------------------------------------------------------------------------------
         try {
