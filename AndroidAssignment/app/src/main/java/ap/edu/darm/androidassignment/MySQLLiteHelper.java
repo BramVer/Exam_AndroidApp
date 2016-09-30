@@ -33,7 +33,7 @@ public class MySQLLiteHelper extends SQLiteOpenHelper {
         onCreate(db);
     }
 
-    public void addLib(String name, Double lat, Double lon) {
+    public void addLib(String name, Double lat, Double lon) throws Exception {
         SQLiteDatabase db = this.getWritableDatabase();
 
         ContentValues v = new ContentValues();
@@ -44,7 +44,7 @@ public class MySQLLiteHelper extends SQLiteOpenHelper {
         db.insert(TBL_LIBS, null, v);
     }
 
-    public String getLib(String name) {
+    public Double[] getLib(String name) throws Exception {
         SQLiteDatabase db = this.getReadableDatabase();
 
         Cursor c = db.query(TBL_LIBS,                                   //table name
@@ -54,10 +54,10 @@ public class MySQLLiteHelper extends SQLiteOpenHelper {
                 null, null, null);                        //groupBy, having, orderBy
 
         c.moveToFirst();
-        return c.getString(2) + "," + c.getString(3);           //Return fname && lname, NOT _id (which is at 0)
+        return new Double[] { c.getDouble(2), c.getDouble(3) };           //Return fname && lname, NOT _id (which is at 0)
     }
 
-    public boolean checkLib(String name) {
+    public boolean checkLib(String name) throws Exception {
         SQLiteDatabase db = this.getReadableDatabase();
 
         Cursor c = db.query(TBL_LIBS,                                   //table name
@@ -69,20 +69,30 @@ public class MySQLLiteHelper extends SQLiteOpenHelper {
         return (c != null);
     }
 
-    public ArrayList<String> getAllLibs() {
+    public ArrayList<Double[]> getAllLibs() throws Exception {
 
         SQLiteDatabase db = this.getReadableDatabase();
         Cursor c = db.rawQuery("SELECT * FROM " + TBL_LIBS, null);
 
-        ArrayList<String> results = new ArrayList<String>();
+        ArrayList<Double[]> results = new ArrayList<Double[]>();
 
         if(c.moveToFirst()) {
             do {
-                results.add( c.getString(2) + "," + c.getString(3) );
+                results.add( new Double[] { c.getDouble(2) , c.getDouble(3) } );
             } while(c.moveToNext());
         }
         
         return results;
+    }
+
+    public boolean checkEmpty() throws Exception {
+        SQLiteDatabase db = this.getReadableDatabase();
+        String q = "SELECT COUNT(*) FROM " + TBL_LIBS;
+
+        Cursor c = db.rawQuery(q, null);
+
+        c.moveToFirst();
+        return (c.getInt(0) < 0);
     }
 }
 

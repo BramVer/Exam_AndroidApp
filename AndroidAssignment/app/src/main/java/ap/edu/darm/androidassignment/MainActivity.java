@@ -16,7 +16,6 @@ import android.support.v4.content.ContextCompat;
 import android.support.v4.content.res.ResourcesCompat;
 import android.util.Log;
 import android.view.MotionEvent;
-import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.TextView;
@@ -26,7 +25,6 @@ import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
-import com.android.volley.toolbox.JsonArrayRequest;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
 
@@ -41,8 +39,6 @@ import org.osmdroid.views.Projection;
 import org.osmdroid.views.overlay.ItemizedIconOverlay;
 import org.osmdroid.views.overlay.OverlayItem;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -57,9 +53,12 @@ public class MainActivity extends Activity {
     private LocationListener locationListener;
     private RequestQueue mRequestQueue;
     private String urlSearch = "http://nominatim.openstreetmap.org/search?q=";
-    private String urlZones = "http://datasets.antwerpen.be/v4/gis/paparkeertariefzones.json";
-    private JSONObject zones;
+    private String urlLibs = "http://datasets.antwerpen.be/v4/gis/bibliotheekoverzicht.json";
+    private JSONObject libs;
     final ArrayList<OverlayItem> items = new ArrayList<OverlayItem>();
+
+    //DB
+    MySQLLiteHelper msqlite;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,6 +69,8 @@ public class MainActivity extends Activity {
             checkPermissions();
         }
 
+        msqlite = new MySQLLiteHelper(this);
+
         // https://github.com/osmdroid/osmdroid/wiki/How-to-use-the-osmdroid-library
         mapView = (MapView) findViewById(R.id.mapview);
         mapView.setTileSource(TileSourceFactory.MAPNIK);
@@ -79,8 +80,52 @@ public class MainActivity extends Activity {
 
         // http://code.tutsplus.com/tutorials/an-introduction-to-volley--cms-23800
         mRequestQueue = Volley.newRequestQueue(this);
-        searchField = (TextView) findViewById(R.id.search_txtview);
+        searchField = (TextView) findViewById(R.id.lib_name);
+
+//-----------------------------------------------------------------------------------------------------------------------------------------------
+        try {
+            ArrayList<Double[]> allLibs = msqlite.getAllLibs();
+
+            //IF there's content inside the db
+            if(allLibs.size() > 0) {
+
+                for(int i = 0; i < allLibs.size(); i++)  {
+                    GeoPoint g = new GeoPoint(allLibs.get(i)[0], allLibs.get(i)[1]);
+                    addMarker(g);
+                }
+                //If there's no content inside the db
+            } else {
+                // A JSONObject to post with the request. Null is allowed and indicates no parameters will be posted along with request.
+                JSONObject obj = null;
+                // haal alle libs op
+                JsonObjectRequest jr = new JsonObjectRequest(Request.Method.GET, urlLibs, obj, new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        hideSoftKeyBoard();
+                        libs = response;
+
+                        handleJSONResponse(response);
+                        //Log.d("edu.ap.maps", libs.toString());
+                    }
+                }, new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Log.e("be.ap.edu.mapsaver", error.getMessage());
+                    }
+                });
+                mRequestQueue.add(jr);
+
+
+            }
+        } catch (Exception ex) {
+            Log.e("Ripper", ex.getMessage());
+        }
+
+
+//-----------------------------------------------------------------------------------------------------------------------------------------------
+        /*
         searchButton = (Button) findViewById(R.id.search_button);
+
         searchButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -91,6 +136,23 @@ public class MainActivity extends Activity {
                     e.printStackTrace();
                 }
 
+
+//----------------------------------------------------------------------------------------------------------------------------------------
+
+
+                //Checking for presence in DB
+                try {
+                    if (msqlite.checkLib(searchField.getText().toString())) {
+                        hideSoftKeyBoard();
+                        Double[] latLong = msqlite.getLib(searchField.getText().toString());
+                        mapView.getController().setCenter(new GeoPoint(latLong[0], latLong[1]));
+                    }
+                }
+                catch(Exception ex) {
+                    Log.e("spijtig", ex.getMessage());
+                }
+
+//----------------------------------------------------------------------------------------------------------------------------------------
                 JsonArrayRequest jr = new JsonArrayRequest(urlSearch + searchString + "&format=json", new Response.Listener<JSONArray>() {
                     @Override
                     public void onResponse(JSONArray response) {
@@ -113,25 +175,8 @@ public class MainActivity extends Activity {
 
                 mRequestQueue.add(jr);
             }
-        });
+        });*/
 
-        // A JSONObject to post with the request. Null is allowed and indicates no parameters will be posted along with request.
-        JSONObject obj = null;
-        // haal alle parkeerzones op
-        JsonObjectRequest jr = new JsonObjectRequest(Request.Method.GET, urlZones, obj, new Response.Listener<JSONObject>() {
-            @Override
-            public void onResponse(JSONObject response) {
-                hideSoftKeyBoard();
-                zones = response;
-                //Log.d("edu.ap.maps", zones.toString());
-            }
-        }, new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                Log.e("be.ap.edu.mapsaver", error.getMessage());
-            }
-        });
-        mRequestQueue.add(jr);
 
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
@@ -179,6 +224,12 @@ public class MainActivity extends Activity {
             imm.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(), 0);
         }
     }
+
+
+
+
+
+
 
     // http://alienryderflex.com/polygon/
     // The basic idea is to find all edges of the polygon that span the 'x' position of the point you're testing against.
@@ -230,15 +281,19 @@ public class MainActivity extends Activity {
         return isInside;
     }
 
+
+
+
+
     private void findZone(GeoPoint clickPoint) {
         try {
-            JSONArray allZones = zones.getJSONArray("data");
-            //Log.d("edu.ap.maps", String.valueOf(allZones.length()));
+            JSONArray allLibs = libs.getJSONArray("data");
+            //Log.d("edu.ap.maps", String.valueOf(allLibs.length()));
 
-            for(int i = 0; i < allZones.length(); i++) {
-                JSONObject obj = (JSONObject)allZones.get(i);
-                String tariefzone =  obj.getString("tariefzone");
-                String tariefkleur = obj.getString("tariefkleur");
+            for(int i = 0; i < allLibs.length(); i++) {
+                JSONObject obj = (JSONObject)allLibs.get(i);
+                String tariefzone =  "";                //obj.getString("tariefzone");
+                String tariefkleur = "";                //obj.getString("tariefkleur");
                 ArrayList<GeoPoint> list = new ArrayList<GeoPoint>();
                 JSONObject geometry = new JSONObject(obj.getString("geometry"));
                 JSONArray coordinates = geometry.getJSONArray("coordinates");
@@ -258,7 +313,7 @@ public class MainActivity extends Activity {
 
                 if(contains(clickPoint, list)) {
                     this.addMarker(clickPoint);
-                    Toast.makeText(this, "Tariefzone : " + tariefzone + " Tariefkleur : " + tariefkleur, Toast.LENGTH_SHORT).show();
+                                        //Toast.makeText(this, "Tariefzone : " + tariefzone + " Tariefkleur : " + tariefkleur, Toast.LENGTH_SHORT).show();
                     break;
                 }
             }
@@ -361,5 +416,20 @@ public class MainActivity extends Activity {
         }
     }
 
+    private void handleJSONResponse(JSONObject object) {
+        try {
+            JSONArray data = object.getJSONArray("data");
+            for(int i = 0 ; i < data.length(); i++) {
+                JSONObject obj = data.getJSONObject(i);
+                GeoPoint g = new GeoPoint(obj.getDouble("point_lat"), obj.getDouble("point_lng"));
+                addMarker(g);
+
+                //Add to db
+                msqlite.addLib(obj.getString("naam"), obj.getDouble("point_lat"), obj.getDouble("point_lng"));
+            }
+        } catch (Exception ex) {
+            Log.e("pipi", ex.getMessage());
+        }
+    }
 // END PERMISSION CHECK
 }
