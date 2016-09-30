@@ -44,19 +44,6 @@ public class MySQLLiteHelper extends SQLiteOpenHelper {
         db.insert(TBL_LIBS, null, v);
     }
 
-    public Double[] getLib(String name) throws Exception {
-        SQLiteDatabase db = this.getReadableDatabase();
-
-        Cursor c = db.query(TBL_LIBS,                                   //table name
-                new String[] { "_id", "name", "lattitude", "longitude" },       //columns to return
-                "name=?",                                        //where part of query
-                new String[] { String.valueOf(name) },            //fills in the '?' part of where
-                null, null, null);                        //groupBy, having, orderBy
-
-        c.moveToFirst();
-        return new Double[] { c.getDouble(2), c.getDouble(3) };           //Return fname && lname, NOT _id (which is at 0)
-    }
-
     public boolean checkLib(String name) throws Exception {
         SQLiteDatabase db = this.getReadableDatabase();
 
@@ -83,16 +70,6 @@ public class MySQLLiteHelper extends SQLiteOpenHelper {
         }
         
         return results;
-    }
-
-    public boolean checkEmpty() throws Exception {
-        SQLiteDatabase db = this.getReadableDatabase();
-        String q = "SELECT COUNT(*) FROM " + TBL_LIBS;
-
-        Cursor c = db.rawQuery(q, null);
-
-        c.moveToFirst();
-        return (c.getInt(0) < 0);
     }
 }
 

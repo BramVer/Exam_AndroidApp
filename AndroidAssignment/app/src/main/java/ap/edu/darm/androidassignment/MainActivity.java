@@ -76,11 +76,12 @@ public class MainActivity extends Activity {
         mapView.setTileSource(TileSourceFactory.MAPNIK);
         mapView.setBuiltInZoomControls(true);
         mapView.setMultiTouchControls(true);
-        mapView.getController().setZoom(18);
+        mapView.getController().setZoom(14);
 
         // http://code.tutsplus.com/tutorials/an-introduction-to-volley--cms-23800
         mRequestQueue = Volley.newRequestQueue(this);
         searchField = (TextView) findViewById(R.id.lib_name);
+        searchField.
 
 //-----------------------------------------------------------------------------------------------------------------------------------------------
         try {
@@ -120,62 +121,6 @@ public class MainActivity extends Activity {
         } catch (Exception ex) {
             Log.e("Ripper", ex.getMessage());
         }
-
-
-//-----------------------------------------------------------------------------------------------------------------------------------------------
-        /*
-        searchButton = (Button) findViewById(R.id.search_button);
-
-        searchButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                String searchString = "";
-                try {
-                    searchString = URLEncoder.encode(searchField.getText().toString(), "UTF-8");
-                } catch (UnsupportedEncodingException e) {
-                    e.printStackTrace();
-                }
-
-
-//----------------------------------------------------------------------------------------------------------------------------------------
-
-
-                //Checking for presence in DB
-                try {
-                    if (msqlite.checkLib(searchField.getText().toString())) {
-                        hideSoftKeyBoard();
-                        Double[] latLong = msqlite.getLib(searchField.getText().toString());
-                        mapView.getController().setCenter(new GeoPoint(latLong[0], latLong[1]));
-                    }
-                }
-                catch(Exception ex) {
-                    Log.e("spijtig", ex.getMessage());
-                }
-
-//----------------------------------------------------------------------------------------------------------------------------------------
-                JsonArrayRequest jr = new JsonArrayRequest(urlSearch + searchString + "&format=json", new Response.Listener<JSONArray>() {
-                    @Override
-                    public void onResponse(JSONArray response) {
-                        try {
-                            //Log.d("edu.ap.maps", response.toString());
-                            hideSoftKeyBoard();
-                            JSONObject obj = response.getJSONObject(0);
-                            GeoPoint g = new GeoPoint(obj.getDouble("lat"), obj.getDouble("lon"));
-                            mapView.getController().setCenter(g);
-                        } catch (JSONException ex) {
-                            Log.e("be.ap.edu.mapsaver", ex.getMessage());
-                        }
-                    }
-                }, new Response.ErrorListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                        Log.e("be.ap.edu.mapsaver", error.getMessage());
-                    }
-                });
-
-                mRequestQueue.add(jr);
-            }
-        });*/
 
 
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
